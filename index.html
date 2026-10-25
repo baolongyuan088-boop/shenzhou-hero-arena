@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0a101d">
+  <title>神州英灵斗技场</title>
+  <style>
+    :root{font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif;color:#f6efe3;background:#070b14}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100svh;background:radial-gradient(circle at 20% 0,#243048,#070b14 65%);display:grid;place-items:center}
+    button{font:inherit;cursor:pointer}
+    .app{width:min(100%,1100px);padding:12px;display:flex;flex-direction:column;gap:9px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    h1{font-size:clamp(22px,3.5vw,34px);margin:0;letter-spacing:3px;color:#ffe0aa;text-shadow:0 2px 14px #de752c88}
+    .subtitle{font-size:11px;letter-spacing:2px;color:#b8bdd1;margin-top:3px}
+    .version{font-size:11px;color:#8fa1b8;text-align:right}
+    .arena{position:relative;width:100%;aspect-ratio:16/9;max-height:65svh;overflow:hidden;border:2px solid #a28b70;border-radius:14px;background:#182133 url('assets/arena-v1.png') center/cover no-repeat;box-shadow:0 8px 40px #000a}
+    canvas{width:100%;height:100%;display:block}
+    .hud{position:absolute;top:10px;left:12px;right:12px;display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:start;pointer-events:none;text-shadow:0 2px 4px #000}
+    .fighter-hud:last-child{text-align:right}.name{font-weight:900;font-size:clamp(13px,2vw,21px);letter-spacing:1px}
+    .bar{height:15px;background:#1a1017cc;border:2px solid #e1c7a8;border-radius:999px;overflow:hidden;margin-top:5px;box-shadow:0 2px 6px #0009}
+    .fill{height:100%;width:100%;background:linear-gradient(90deg,#cb4848,#ffb36e);transition:width .15s linear}
+    .enemy .fill{margin-left:auto;background:linear-gradient(90deg,#7fc5ff,#687ada)}
+    .energy{height:5px;background:#071323b8;margin-top:4px;border-radius:10px;overflow:hidden}.energy-fill{height:100%;width:0;background:linear-gradient(90deg,#37d5db,#dc9fff)}
+    .round-box{text-align:center;min-width:72px;background:#0c1428bd;border:1px solid #f6d3a977;border-radius:10px;padding:3px 8px}
+    .round-box strong{display:block;color:#ffe09d;font-size:24px;line-height:1.1}.round-box span{font-size:10px;color:#d6d0c7}
+    .message{position:absolute;top:27%;left:50%;transform:translateX(-50%);padding:7px 18px;max-width:80%;text-align:center;background:#09152dd9;border:1px solid #efc07f88;border-radius:9px;color:#fff2cf;font-size:clamp(15px,3vw,29px);font-weight:900;letter-spacing:2px;opacity:0;transition:opacity .2s;pointer-events:none;text-shadow:0 2px 10px #000}
+    .message.show{opacity:1}
+    .overlay{position:absolute;inset:0;background:#050913da;backdrop-filter:blur(5px);display:grid;align-items:safe center;justify-items:center;padding:13px;overflow:auto}
+    .overlay.hidden{display:none}
+    .panel{width:min(96%,850px);background:linear-gradient(145deg,#1d2338ed,#0e1627f2);border:1px solid #e1b77d88;border-radius:16px;padding:clamp(12px,3vw,24px);box-shadow:0 15px 45px #000b;text-align:center}
+    .panel h2{font-size:clamp(22px,4vw,34px);margin:0 0 5px;color:#ffe0a5}
+    .panel p{font-size:12px;line-height:1.5;color:#d9d8e3;margin:4px 0 11px}
+    .roster{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:11px auto;max-width:800px}
+    .hero{position:relative;min-height:70px;padding:8px 61px 8px 8px;border-radius:10px;border:1px solid #758297;background:linear-gradient(145deg,#202c42,#11192a);color:#f4f1e8;text-align:left;overflow:hidden}
+    .hero.selected{border:2px solid #f8c974;box-shadow:0 0 15px #e9aa5866;background:linear-gradient(145deg,#5a3740,#1c2437)}
+    .hero b{font-size:15px}.hero small{display:block;color:#bfc6d7;font-size:10px;margin-top:3px}.hero em{font-style:normal;position:absolute;right:9px;top:8px;color:#ffe7b1;font-size:19px}
+    .hero-thumb{position:absolute;right:2px;bottom:0;width:58px;height:58px;background-position:left top;background-size:300% 200%;background-repeat:no-repeat;filter:drop-shadow(0 0 7px #d8dfff66)}
+    .spirits{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:7px auto 10px}.spirit{position:relative;min-height:43px;border:1px solid #788ba7;border-radius:8px;background:#1b2b3e;color:#dbe9fc;padding:5px 8px 5px 38px;font-size:11px}.spirit.selected{border-color:#ffd78b;background:#55404b;color:#fff2d1}.spirit-thumb{position:absolute;left:3px;bottom:1px;width:32px;height:39px;object-fit:contain;pointer-events:none}
+    .primary{border:0;border-radius:999px;padding:10px 25px;background:linear-gradient(95deg,#df8b49,#ffe1a0);color:#1c1421;font-weight:900;box-shadow:0 5px 20px #eeae6a55}
+    .primary:active,.control:active,.card:active{transform:scale(.96)}
+    .info{display:flex;gap:10px;justify-content:space-between;align-items:stretch}
+    .cards{display:flex;gap:7px;flex:1}
+    .card{flex:1;min-width:0;min-height:56px;border:1px solid #b89e77;border-radius:10px;background:linear-gradient(145deg,#332d35,#171e2b);color:#fff0d8;padding:6px 8px;text-align:left;box-shadow:0 3px 10px #0007}
+    .card:disabled{opacity:.44;cursor:not-allowed}.card b{display:block;font-size:13px}.card span{font-size:10px;color:#c9c3c5}
+    .controls{display:flex;align-items:center;gap:6px}
+    .control{min-width:43px;height:44px;border:1px solid #8198a5;border-radius:10px;background:#1b2a3d;color:#f4f7ff;font-weight:800;touch-action:none;user-select:none}
+    .control.attack{background:#59342f;border-color:#dc986a}.control.special{background:#40335c;border-color:#ba9cff}
+    .instructions{font-size:10px;color:#a6b1c6;line-height:1.4;text-align:center}
+    @media(max-width:700px){.app{padding:6px;gap:5px}.arena{max-height:none}.hud{top:5px;left:6px;right:6px;gap:5px}.round-box{min-width:52px;padding:2px 4px}.round-box strong{font-size:18px}.bar{height:11px}.info{flex-direction:column-reverse}.control{flex:1;min-width:0;height:42px;font-size:12px}.cards{width:100%}.card{min-height:48px}.roster{grid-template-columns:repeat(3,1fr);gap:5px}.hero{min-height:58px;padding:5px 47px 5px 5px}.hero b{font-size:12px}.hero small{font-size:9px}.hero-thumb{width:44px;height:48px}.panel{padding:10px}.panel p{margin:3px 0 7px}.instructions{font-size:9px}}
+    @media(orientation:landscape) and (max-height:500px){body{display:block}.app{width:min(100%,900px);margin:auto}.arena{max-height:calc(100svh - 119px)}header{display:none}.instructions{display:none}.panel{padding:7px}.panel h2{font-size:20px}.panel p{font-size:10px}.roster{margin:5px auto}.hero{min-height:46px}.hero small{display:none}.hero em{top:4px}.primary{padding:6px 20px}.info{flex-direction:row}.controls{flex:1}.cards{flex:1}.card{min-height:42px}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header><div><h1>神州英灵斗技场</h1><div class="subtitle">人间列阵 · 神域开战</div></div><div class="version">原创英雄擂台 · 可玩原型</div></header>
+    <section class="arena" id="arena">
+      <canvas id="game" aria-label="英灵对决游戏擂台"></canvas>
+      <div class="hud">
+        <div class="fighter-hud"><div class="name" id="player-name">人间英灵</div><div class="bar"><div class="fill" id="player-health"></div></div><div class="energy"><div class="energy-fill" id="player-energy"></div></div></div>
+        <div class="round-box"><strong id="timer">90</strong><span id="round">第一战</span></div>
+        <div class="fighter-hud enemy"><div class="name" id="enemy-name">神域斗士</div><div class="bar"><div class="fill" id="enemy-health"></div></div><div class="energy"><div class="energy-fill" id="enemy-energy"></div></div></div>
+      </div>
+      <div class="message" id="message"></div>
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h2 id="panel-title">选一位人间英灵</h2>
+          <p id="panel-text">从秦汉到宋代，十二位英灵与契灵并肩迎战神域。移动、出招、格挡、打出战术卡，连胜三位神域斗士。</p>
+          <div class="roster" id="roster"></div>
+          <div class="spirits" id="spirits" aria-label="选择契灵"></div>
+          <button class="primary" id="start">开始第一战</button>
+        </div>
+      </div>
+    </section>
+    <div class="info">
+      <div class="cards" id="cards" aria-label="战术卡牌"></div>
+      <div class="controls" aria-label="格斗控制">
+        <button class="control" data-action="left" aria-label="向左">◀</button>
+        <button class="control" data-action="right" aria-label="向右">▶</button>
+        <button class="control" data-action="jump" aria-label="跳跃">跳</button>
+        <button class="control attack" data-action="light" aria-label="轻击">轻击</button>
+        <button class="control attack" data-action="heavy" aria-label="重击">重击</button>
+        <button class="control" data-action="guard" aria-label="格挡">防</button>
+        <button class="control special" data-action="special" aria-label="绝技">绝</button>
+      </div>
+    </div>
+    <div class="instructions">电脑：A/D 移动、W 跳、J 轻击、K 重击、L 格挡、U 绝技、1/2/3 出牌。手机点击下方按钮。</div>
+  </main>
+  <script src="game.js?v=3"></script>
+</body>
+</html>
